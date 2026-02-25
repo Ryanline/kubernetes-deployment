@@ -4,15 +4,17 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_USER = "ryanline"
+        DOCKERHUB_USER = "ryanline"          // must be lowercase for Docker Hub repo names
         IMAGE_NAME = "simple-webapp"
         IMAGE_TAG = "latest"
 
+        // Jenkins credential IDs
         DOCKER_CREDS = "dockerhub-creds"
         KUBECONFIG_CREDENTIAL = "kubeconfig-id"
     }
 
     stages {
+
         stage('Build Docker Image') {
             steps {
                 script {
@@ -32,29 +34,32 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
-  steps {
-    withCredentials([file(credentialsId: KUBECONFIG_CREDENTIAL, variable: 'KCFG')]) {
-      sh '''
-        set -e
+            steps {
+                withCredentials([file(credentialsId: KUBECONFIG_CREDENTIAL, variable: 'KCFG')]) {
+                    sh '''
+                        set -e
 
-        # Put kubeconfig somewhere always writable
-        KPATCH=/tmp/kubeconfig.patched
-        cp "$KCFG" "$KPATCH"
-        chmod 600 "$KPATCH"
+                        # Put kubeconfig somewhere always writable
+                        KPATCH=/tmp/kubeconfig.patched
+                        cp "$KCFG" "$KPATCH"
+                        chmod 600 "$KPATCH"
 
-        # Disable TLS verification for this kubeconfig (quick fix)
-        kubectl --kubeconfig="$KPATCH" config set-cluster c-m-k2x2rxxl --insecure-skip-tls-verify=true
+                        # DEBUG: show file + dir permissions
+                        ls -la "$KCFG" "$KPATCH" /tmp
 
-        export KUBECONFIG="$KPATCH"
+                        # Disable TLS verification for this kubeconfig (quick fix for IP SAN issue)
+                        kubectl --kubeconfig="$KPATCH" config set-cluster c-m-k2x2rxxl --insecure-skip-tls-verify=true
 
-        kubectl get nodes
-        kubectl apply -f k8s/deployment.yaml
-        kubectl apply -f k8s/service.yaml
-        kubectl get pods
-        kubectl get svc
-      '''
-    }
-  }
-}
+                        export KUBECONFIG="$KPATCH"
+
+                        kubectl get nodes
+                        kubectl apply -f k8s/deployment.yaml
+                        kubectl apply -f k8s/service.yaml
+                        kubectl get pods
+                        kubectl get svc
+                    '''
+                }
+            }
+        }
     }
 }
