@@ -35,14 +35,17 @@ pipeline {
   steps {
     withCredentials([file(credentialsId: KUBECONFIG_CREDENTIAL, variable: 'KCFG')]) {
       sh '''
-        # Copy kubeconfig to a writable location
-        cp "$KCFG" kubeconfig.patched
+        set -e
 
-        # Turn off TLS verify for this kubeconfig (quick fix for IP SAN issue)
-        kubectl --kubeconfig=kubeconfig.patched config set-cluster c-m-k2x2rxxl --insecure-skip-tls-verify=true
+        # Put kubeconfig somewhere always writable
+        KPATCH=/tmp/kubeconfig.patched
+        cp "$KCFG" "$KPATCH"
+        chmod 600 "$KPATCH"
 
-        # Use patched kubeconfig
-        export KUBECONFIG=$PWD/kubeconfig.patched
+        # Disable TLS verification for this kubeconfig (quick fix)
+        kubectl --kubeconfig="$KPATCH" config set-cluster c-m-k2x2rxxl --insecure-skip-tls-verify=true
+
+        export KUBECONFIG="$KPATCH"
 
         kubectl get nodes
         kubectl apply -f k8s/deployment.yaml
