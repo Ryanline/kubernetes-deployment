@@ -1,3 +1,5 @@
+def dockerImage
+
 pipeline {
     agent any
 
@@ -6,16 +8,11 @@ pipeline {
         IMAGE_NAME = "simple-webapp"
         IMAGE_TAG = "latest"
 
-        // Jenkins credential IDs (these must match what's in Jenkins)
         DOCKER_CREDS = "dockerhub-creds"
         KUBECONFIG_CREDENTIAL = "kubeconfig-id"
     }
 
     stages {
-
-        // No explicit "Checkout" stage needed:
-        // Declarative pipelines automatically do "Checkout SCM" for you.
-
         stage('Build Docker Image') {
             steps {
                 script {
@@ -27,7 +24,7 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    docker.withRegistry('', DOCKER_CREDS) {
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDS) {
                         dockerImage.push(IMAGE_TAG)
                     }
                 }
