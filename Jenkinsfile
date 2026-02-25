@@ -4,17 +4,15 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_USER = "ryanline"          // must be lowercase for Docker Hub repo names
+        DOCKERHUB_USER = "ryanline"
         IMAGE_NAME = "simple-webapp"
         IMAGE_TAG = "latest"
 
-        // Jenkins credential IDs
         DOCKER_CREDS = "dockerhub-creds"
         KUBECONFIG_CREDENTIAL = "kubeconfig-id"
     }
 
     stages {
-
         stage('Build Docker Image') {
             steps {
                 script {
@@ -38,25 +36,19 @@ pipeline {
                 withCredentials([file(credentialsId: KUBECONFIG_CREDENTIAL, variable: 'KCFG')]) {
                     sh '''
                         set -e
-
-                        # Put kubeconfig somewhere always writable
                         KPATCH=/tmp/kubeconfig.patched
                         cp "$KCFG" "$KPATCH"
                         chmod 600 "$KPATCH"
 
-                        # DEBUG: show file + dir permissions
+                        # DEBUG
                         ls -la "$KCFG" "$KPATCH" /tmp
 
-                        # Disable TLS verification for this kubeconfig (quick fix for IP SAN issue)
-                        kubectl --kubeconfig="$KPATCH" config set-cluster c-m-k2x2rxxl --insecure-skip-tls-verify=true
-
-                        export KUBECONFIG="$KPATCH"
-
-                        kubectl get nodes
-                        kubectl apply -f k8s/deployment.yaml
-                        kubectl apply -f k8s/service.yaml
-                        kubectl get pods
-                        kubectl get svc
+                        # Force TLS skip on every command (works even if kubeconfig doesn't update cleanly)
+                        kubectl --kubeconfig="$KPATCH" --insecure-skip-tls-verify=true get nodes
+                        kubectl --kubeconfig="$KPATCH" --insecure-skip-tls-verify=true apply -f k8s/deployment.yaml
+                        kubectl --kubeconfig="$KPATCH" --insecure-skip-tls-verify=true apply -f k8s/service.yaml
+                        kubectl --kubeconfig="$KPATCH" --insecure-skip-tls-verify=true get pods
+                        kubectl --kubeconfig="$KPATCH" --insecure-skip-tls-verify=true get svc
                     '''
                 }
             }
