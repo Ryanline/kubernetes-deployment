@@ -32,16 +32,26 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
-    steps {
-        withCredentials([file(credentialsId: KUBECONFIG_CREDENTIAL, variable: 'KUBECONFIG')]) {
-            sh """
-                kubectl apply --validate=false -f k8s/deployment.yaml
-                kubectl apply --validate=false -f k8s/service.yaml
-                kubectl get pods
-                kubectl get svc
-            """
-        }
+  steps {
+    withCredentials([file(credentialsId: KUBECONFIG_CREDENTIAL, variable: 'KCFG')]) {
+      sh '''
+        # Copy kubeconfig to a writable location
+        cp "$KCFG" kubeconfig.patched
+
+        # Turn off TLS verify for this kubeconfig (quick fix for IP SAN issue)
+        kubectl --kubeconfig=kubeconfig.patched config set-cluster c-m-k2x2rxxl --insecure-skip-tls-verify=true
+
+        # Use patched kubeconfig
+        export KUBECONFIG=$PWD/kubeconfig.patched
+
+        kubectl get nodes
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml
+        kubectl get pods
+        kubectl get svc
+      '''
     }
+  }
 }
     }
 }
