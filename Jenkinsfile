@@ -5,17 +5,16 @@ pipeline {
         DOCKERHUB_USER = "Ryanline"
         IMAGE_NAME = "simple-webapp"
         IMAGE_TAG = "latest"
-        DOCKER_CREDS = "docker-pass"
+
+        // Jenkins credential IDs (these must match what's in Jenkins)
+        DOCKER_CREDS = "dockerhub-creds"
         KUBECONFIG_CREDENTIAL = "kubeconfig-id"
     }
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                git 'git@github.com:Ryanline/kubernetes-deployment.git'
-            }
-        }
+        // No explicit "Checkout" stage needed:
+        // Declarative pipelines automatically do "Checkout SCM" for you.
 
         stage('Build Docker Image') {
             steps {
@@ -29,7 +28,7 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry('', DOCKER_CREDS) {
-                        dockerImage.push()
+                        dockerImage.push(IMAGE_TAG)
                     }
                 }
             }
