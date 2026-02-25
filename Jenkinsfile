@@ -4,7 +4,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_USER = "Ryanline"
+        DOCKERHUB_USER = "ryanline"
         IMAGE_NAME = "simple-webapp"
         IMAGE_TAG = "latest"
 
